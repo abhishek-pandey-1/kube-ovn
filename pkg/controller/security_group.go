@@ -283,11 +283,27 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 			return fmt.Errorf("not support sgRemoteType '%s'", rule.RemoteType)
 		}
 
+		if strings.Contains(rule.LocalAddress, "/") {
+			if _, _, err := net.ParseCIDR(rule.LocalAddress); err != nil {
+				return fmt.Errorf("invalid CIDR '%s'", rule.LocalAddress)
+			}
+		} else {
+			if net.ParseIP(rule.LocalAddress) == nil {
+				return fmt.Errorf("invalid ip address '%s'", rule.LocalAddress)
+			}
+		}
+
 		if rule.Protocol == kubeovnv1.SgProtocolTCP || rule.Protocol == kubeovnv1.SgProtocolUDP {
 			if rule.PortRangeMin < 1 || rule.PortRangeMin > 65535 || rule.PortRangeMax < 1 || rule.PortRangeMax > 65535 {
 				return errors.New("portRange is out of range")
 			}
 			if rule.PortRangeMin > rule.PortRangeMax {
+				return errors.New("portRange err, range Minimum value greater than maximum value")
+			}
+			if rule.LocalPortRangeMin < 1 || rule.LocalPortRangeMin > 65535 || rule.LocalPortRangeMax < 1 || rule.LocalPortRangeMax > 65535 {
+				return errors.New("portRange is out of range")
+			}
+			if rule.LocalPortRangeMin > rule.LocalPortRangeMax {
 				return errors.New("portRange err, range Minimum value greater than maximum value")
 			}
 		}

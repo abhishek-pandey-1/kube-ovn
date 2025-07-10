@@ -948,13 +948,15 @@ func (c *OVNNbClient) newSgRuleACL(sgName, direction string, rule kubeovnv1.Secu
 	pgName := GetSgPortGroupName(sgName)
 
 	// ingress rule
-	srcOrDst, portDirection := "src", "outport"
+	localSrcOrDst, remoteSrcOrDst, portDirection := "dst", "src", "outport"
 	if direction == ovnnb.ACLDirectionFromLport { // egress rule
-		srcOrDst = "dst"
+		remoteSrcOrDst = "dst"
+		localSrcOrDst = "src"
 		portDirection = "inport"
 	}
 
-	ipKey := ipSuffix + "." + srcOrDst
+	remoteipKey := ipSuffix + "." + remoteSrcOrDst
+	localipKey := ipSuffix + "." + localSrcOrDst
 
 	/* match all traffic to or from pgName */
 	allIPMatch := NewAndACLMatch(
@@ -964,9 +966,11 @@ func (c *OVNNbClient) newSgRuleACL(sgName, direction string, rule kubeovnv1.Secu
 
 	/* allow allowed ip traffic */
 	// type address
+
 	allowedIPMatch := NewAndACLMatch(
 		allIPMatch,
-		NewACLMatch(ipKey, "==", rule.RemoteAddress, ""),
+		NewACLMatch(remoteipKey, "==", rule.RemoteAddress, ""),
+		NewACLMatch(localipKey, "==", rule.LocalAddress, ""),
 	)
 
 	// type securityGroup
@@ -977,7 +981,8 @@ func (c *OVNNbClient) newSgRuleACL(sgName, direction string, rule kubeovnv1.Secu
 	if rule.RemoteType == kubeovnv1.SgRemoteTypeSg {
 		allowedIPMatch = NewAndACLMatch(
 			allIPMatch,
-			NewACLMatch(ipKey, "==", "$"+remotePgName, ""),
+			NewACLMatch(remoteipKey, "==", "$"+remotePgName, ""),
+			NewACLMatch(localipKey, "==", rule.LocalAddress, ""),
 		)
 	}
 
@@ -1001,6 +1006,7 @@ func (c *OVNNbClient) newSgRuleACL(sgName, direction string, rule kubeovnv1.Secu
 		match = NewAndACLMatch(
 			allowedIPMatch,
 			NewACLMatch(string(rule.Protocol)+".dst", "<=", strconv.Itoa(rule.PortRangeMin), strconv.Itoa(rule.PortRangeMax)),
+			NewACLMatch(string(rule.Protocol)+".src", "<=", strconv.Itoa(rule.LocalPortRangeMin), strconv.Itoa(rule.LocalPortRangeMax)),
 		)
 	}
 

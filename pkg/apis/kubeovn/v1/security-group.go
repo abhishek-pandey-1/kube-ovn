@@ -69,6 +69,9 @@ type SecurityGroupRule struct {
 	RemoteSecurityGroup string       `json:"remoteSecurityGroup,omitempty"`
 	PortRangeMin        int          `json:"portRangeMin,omitempty"`
 	PortRangeMax        int          `json:"portRangeMax,omitempty"`
+	LocalAddress        string       `json:"localAddress,omitempty"`
+	LocalPortRangeMin   int          `json:"localPortRangeMin,omitempty"`
+	LocalPortRangeMax   int          `json:"localPortRangeMax,omitempty"`
 	Policy              SgPolicy     `json:"policy"`
 	Tier                int          `json:"tier,omitempty"`
 }
