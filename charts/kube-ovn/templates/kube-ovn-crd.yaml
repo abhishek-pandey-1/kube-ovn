@@ -2963,6 +2963,8 @@ spec:
                         type: integer
                       policy:
                         type: string
+                      tier:
+                        type: integer
                 egressRules:
                   type: array
                   items:
@@ -2986,6 +2988,8 @@ spec:
                         type: integer
                       policy:
                         type: string
+                      tier:
+                        type: integer
                 allowSameGroupTraffic:
                   type: boolean
             status:

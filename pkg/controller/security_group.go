@@ -255,8 +255,12 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 			return errors.New("IPVersion should be 'ipv4' or 'ipv6'")
 		}
 
-		if rule.Priority < 1 || rule.Priority > 200 {
-			return fmt.Errorf("priority '%d' is not in the range of 1 to 200", rule.Priority)
+		if rule.Priority < 1 || rule.Priority > 16384 {
+			return fmt.Errorf("priority '%d' is not in the range of 1 to 16384", rule.Priority)
+		}
+
+		if rule.Tier < 2 || rule.Tier > 3 {
+			return fmt.Errorf("tier '%d' is not in the range [2,3]", rule.Tier)
 		}
 
 		switch rule.RemoteType {

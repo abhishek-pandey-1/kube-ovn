@@ -286,13 +286,13 @@ func (c *OVNNbClient) CreateNodeACL(pgName, nodeIPStr, joinIPStr string) error {
 func (c *OVNNbClient) CreateSgDenyAllACL(sgName string) error {
 	pgName := GetSgPortGroupName(sgName)
 
-	ingressACL, err := c.newACL(pgName, ovnnb.ACLDirectionToLport, util.SecurityGroupDropPriority, fmt.Sprintf("outport == @%s && ip", pgName), ovnnb.ACLActionDrop, util.NetpolACLTier)
+	ingressACL, err := c.newACL(pgName, ovnnb.ACLDirectionToLport, util.SecurityGroupDropPriority, fmt.Sprintf("outport == @%s && ip", pgName), ovnnb.ACLActionDrop, util.SecurityGroupLowerTier)
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("new deny all ingress acl for security group %s: %w", sgName, err)
 	}
 
-	egressACL, err := c.newACL(pgName, ovnnb.ACLDirectionFromLport, util.SecurityGroupDropPriority, fmt.Sprintf("inport == @%s && ip", pgName), ovnnb.ACLActionDrop, util.NetpolACLTier)
+	egressACL, err := c.newACL(pgName, ovnnb.ACLDirectionFromLport, util.SecurityGroupDropPriority, fmt.Sprintf("inport == @%s && ip", pgName), ovnnb.ACLActionDrop, util.SecurityGroupLowerTier)
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("new deny all egress acl for security group %s: %w", sgName, err)
@@ -332,7 +332,7 @@ func (c *OVNNbClient) CreateSgBaseACL(sgName, direction string) error {
 	acls := make([]*ovnnb.ACL, 0)
 
 	newACL := func(match string) {
-		acl, err := c.newACL(pgName, direction, util.SecurityGroupBasePriority, match, ovnnb.ACLActionAllowRelated, util.NetpolACLTier)
+		acl, err := c.newACL(pgName, direction, util.SecurityGroupBasePriority, match, ovnnb.ACLActionAllowRelated, util.SecurityGroupLowerTier)
 		if err != nil {
 			klog.Error(err)
 			klog.Errorf("new base ingress acl for security group %s: %v", sgName, err)
@@ -421,7 +421,7 @@ func (c *OVNNbClient) UpdateSgACL(sg *kubeovnv1.SecurityGroup, direction string)
 				NewACLMatch(ipSuffix, "", "", ""),
 				NewACLMatch(ipSuffix+"."+srcOrDst, "==", "$"+asName, ""),
 			)
-			acl, err := c.newACL(pgName, direction, util.SecurityGroupAllowPriority, match.String(), ovnnb.ACLActionAllowRelated, util.NetpolACLTier)
+			acl, err := c.newACL(pgName, direction, util.SecurityGroupAllowPriority, match.String(), ovnnb.ACLActionAllowRelated, util.SecurityGroupUpperTier)
 			if err != nil {
 				klog.Error(err)
 				return fmt.Errorf("new allow acl for security group %s: %w", sg.Name, err)
@@ -1008,10 +1008,13 @@ func (c *OVNNbClient) newSgRuleACL(sgName, direction string, rule kubeovnv1.Secu
 	if rule.Policy == kubeovnv1.SgPolicyAllow {
 		action = ovnnb.ACLActionAllowRelated
 	}
+	if rule.Policy == kubeovnv1.SgPolicyPass {
+		action = ovnnb.ACLActionPass
+	}
 
 	highestPriority, _ := strconv.Atoi(util.SecurityGroupHighestPriority)
 
-	acl, err := c.newACL(pgName, direction, strconv.Itoa(highestPriority-rule.Priority), match.String(), action, util.NetpolACLTier)
+	acl, err := c.newACL(pgName, direction, strconv.Itoa(highestPriority-rule.Priority), match.String(), action, rule.Tier)
 	if err != nil {
 		klog.Error(err)
 		return nil, fmt.Errorf("new security group acl for port group %s: %w", pgName, err)

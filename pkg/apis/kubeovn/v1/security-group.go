@@ -31,6 +31,7 @@ type SgPolicy string
 var (
 	SgPolicyAllow = SgPolicy(ovnnb.ACLActionAllow)
 	SgPolicyDrop  = SgPolicy(ovnnb.ACLActionDrop)
+	SgPolicyPass  = SgPolicy(ovnnb.ACLActionPass)
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -69,6 +70,7 @@ type SecurityGroupRule struct {
 	PortRangeMin        int          `json:"portRangeMin,omitempty"`
 	PortRangeMax        int          `json:"portRangeMax,omitempty"`
 	Policy              SgPolicy     `json:"policy"`
+	Tier                int          `json:"tier,omitempty"`
 }
 
 type SecurityGroupStatus struct {
