@@ -57,7 +57,11 @@ func (c *Controller) initDefaultDenyAllSecurityGroup() error {
 	}
 
 	// Add default deny rules for both the tiers. If port has a securityGroup configured,
-	// it should have deny rule configured in both tier 2 and tier 3.
+	// it should have deny rule configured in both tier 2 and tier 3. This ensures that
+	// if the first tier passed the packet to second tier and ther is no match in the
+	// second tier, the packet should be dropped.
+	// If in future we extend the number of securityGroup tiers, this logic should be
+	// extended to cover all tiers.
 	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, 2); err != nil {
 		klog.Errorf("create deny all acl for sg %s tier 2: %v", util.DenyAllSecurityGroup, err)
 		return err
