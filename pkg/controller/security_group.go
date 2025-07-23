@@ -56,8 +56,15 @@ func (c *Controller) initDefaultDenyAllSecurityGroup() error {
 		return err
 	}
 
-	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup); err != nil {
-		klog.Errorf("create deny all acl for sg %s: %v", util.DenyAllSecurityGroup, err)
+	// Add default deny rules for both the tiers. If port has a securityGroup configured,
+	// it should have deny rule configured in both tier 2 and tier 3.
+	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, 2); err != nil {
+		klog.Errorf("create deny all acl for sg %s tier 2: %v", util.DenyAllSecurityGroup, err)
+		return err
+	}
+
+	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, 3); err != nil {
+		klog.Errorf("create deny all acl for sg %s tier 3: %v", util.DenyAllSecurityGroup, err)
 		return err
 	}
 
@@ -206,14 +213,14 @@ func (c *Controller) handleAddOrUpdateSg(key string, force bool) error {
 
 	// update sg rule
 	if ingressNeedUpdate {
-		if err = c.OVNNbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport); err != nil {
+		if err = c.OVNNbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport, sg.Spec.SecurityGroupTier); err != nil {
 			sg.Status.IngressLastSyncSuccess = false
 			c.patchSgStatus(sg)
 			klog.Error(err)
 			return err
 		}
 
-		if err := c.OVNNbClient.CreateSgBaseACL(sg.Name, ovnnb.ACLDirectionToLport); err != nil {
+		if err := c.OVNNbClient.CreateSgBaseACL(sg.Name, ovnnb.ACLDirectionToLport, sg.Spec.SecurityGroupTier); err != nil {
 			klog.Error(err)
 			return err
 		}
@@ -222,14 +229,14 @@ func (c *Controller) handleAddOrUpdateSg(key string, force bool) error {
 		c.patchSgStatus(sg)
 	}
 	if egressNeedUpdate {
-		if err = c.OVNNbClient.UpdateSgACL(sg, ovnnb.ACLDirectionFromLport); err != nil {
+		if err = c.OVNNbClient.UpdateSgACL(sg, ovnnb.ACLDirectionFromLport, sg.Spec.SecurityGroupTier); err != nil {
 			sg.Status.IngressLastSyncSuccess = false
 			c.patchSgStatus(sg)
 			klog.Error(err)
 			return err
 		}
 
-		if err := c.OVNNbClient.CreateSgBaseACL(sg.Name, ovnnb.ACLDirectionFromLport); err != nil {
+		if err := c.OVNNbClient.CreateSgBaseACL(sg.Name, ovnnb.ACLDirectionFromLport, sg.Spec.SecurityGroupTier); err != nil {
 			klog.Error(err)
 			return err
 		}
@@ -250,6 +257,10 @@ func (c *Controller) handleAddOrUpdateSg(key string, force bool) error {
 func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 	// check sg rules
 	allRules := append(sg.Spec.IngressRules, sg.Spec.EgressRules...)
+	if sg.Spec.SecurityGroupTier < 2 || sg.Spec.SecurityGroupTier > 3 {
+		return fmt.Errorf("tier '%d' is not in the range [2,3]", sg.Spec.SecurityGroupTier)
+	}
+
 	for _, rule := range allRules {
 		if rule.IPVersion != "ipv4" && rule.IPVersion != "ipv6" {
 			return errors.New("IPVersion should be 'ipv4' or 'ipv6'")
@@ -257,10 +268,6 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 
 		if rule.Priority < 1 || rule.Priority > 16384 {
 			return fmt.Errorf("priority '%d' is not in the range of 1 to 16384", rule.Priority)
-		}
-
-		if rule.Tier < 2 || rule.Tier > 3 {
-			return fmt.Errorf("tier '%d' is not in the range [2,3]", rule.Tier)
 		}
 
 		switch rule.RemoteType {
@@ -283,13 +290,15 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 			return fmt.Errorf("not support sgRemoteType '%s'", rule.RemoteType)
 		}
 
-		if strings.Contains(rule.LocalAddress, "/") {
-			if _, _, err := net.ParseCIDR(rule.LocalAddress); err != nil {
-				return fmt.Errorf("invalid CIDR '%s'", rule.LocalAddress)
-			}
-		} else {
-			if net.ParseIP(rule.LocalAddress) == nil {
-				return fmt.Errorf("invalid ip address '%s'", rule.LocalAddress)
+		if rule.LocalAddress != "" {
+			if strings.Contains(rule.LocalAddress, "/") {
+				if _, _, err := net.ParseCIDR(rule.LocalAddress); err != nil {
+					return fmt.Errorf("invalid CIDR '%s'", rule.LocalAddress)
+				}
+			} else {
+				if net.ParseIP(rule.LocalAddress) == nil {
+					return fmt.Errorf("invalid ip address '%s'", rule.LocalAddress)
+				}
 			}
 		}
 
@@ -300,11 +309,13 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 			if rule.PortRangeMin > rule.PortRangeMax {
 				return errors.New("portRange err, range Minimum value greater than maximum value")
 			}
-			if rule.LocalPortRangeMin < 1 || rule.LocalPortRangeMin > 65535 || rule.LocalPortRangeMax < 1 || rule.LocalPortRangeMax > 65535 {
-				return errors.New("portRange is out of range")
-			}
-			if rule.LocalPortRangeMin > rule.LocalPortRangeMax {
-				return errors.New("portRange err, range Minimum value greater than maximum value")
+			if rule.LocalAddress != "" {
+				if rule.LocalPortRangeMin < 1 || rule.LocalPortRangeMin > 65535 || rule.LocalPortRangeMax < 1 || rule.LocalPortRangeMax > 65535 {
+					return errors.New("portRange is out of range")
+				}
+				if rule.LocalPortRangeMin > rule.LocalPortRangeMax {
+					return errors.New("portRange err, range Minimum value greater than maximum value")
+				}
 			}
 		}
 	}

@@ -595,7 +595,7 @@ func (suite *OvnClientTestSuite) testCreateSgDenyAllACL() {
 		err := nbClient.CreatePortGroup(pgName, nil)
 		require.NoError(t, err)
 
-		err = nbClient.CreateSgDenyAllACL(sgName)
+		err = nbClient.CreateSgDenyAllACL(sgName, 2)
 		require.NoError(t, err)
 
 		pg, err := nbClient.GetPortGroup(pgName, false)
@@ -622,18 +622,18 @@ func (suite *OvnClientTestSuite) testCreateSgDenyAllACL() {
 
 	t.Run("should print log err when sg name does not exist", func(t *testing.T) {
 		sgName := "test_nonexist_pg"
-		err := nbClient.CreateSgDenyAllACL(sgName)
+		err := nbClient.CreateSgDenyAllACL(sgName, 2)
 		require.Error(t, err)
 	})
 
 	t.Run("should print log err when sg name is empty", func(t *testing.T) {
-		err := nbClient.CreateSgDenyAllACL("")
+		err := nbClient.CreateSgDenyAllACL("", 2)
 		require.ErrorContains(t, err, "the port group name or logical switch name is required")
 	})
 
 	t.Run("fail nb client should log err", func(t *testing.T) {
 		sgName := "test_failed_client"
-		err := failedNbClient.CreateSgDenyAllACL(sgName)
+		err := failedNbClient.CreateSgDenyAllACL(sgName, 2)
 		require.Error(t, err)
 	})
 }
@@ -667,7 +667,7 @@ func (suite *OvnClientTestSuite) testCreateSgBaseACL() {
 		require.NoError(t, err)
 
 		// ingress
-		err = nbClient.CreateSgBaseACL(sgName, ovnnb.ACLDirectionToLport)
+		err = nbClient.CreateSgBaseACL(sgName, ovnnb.ACLDirectionToLport, 2)
 		require.NoError(t, err)
 
 		pg, err := nbClient.GetPortGroup(pgName, false)
@@ -706,7 +706,7 @@ func (suite *OvnClientTestSuite) testCreateSgBaseACL() {
 		require.NoError(t, err)
 
 		// egress
-		err = nbClient.CreateSgBaseACL(sgName, ovnnb.ACLDirectionFromLport)
+		err = nbClient.CreateSgBaseACL(sgName, ovnnb.ACLDirectionFromLport, 2)
 		require.NoError(t, err)
 
 		pg, err := nbClient.GetPortGroup(pgName, false)
@@ -735,7 +735,7 @@ func (suite *OvnClientTestSuite) testCreateSgBaseACL() {
 	})
 
 	t.Run("should return no err when sg name is empty", func(t *testing.T) {
-		err := nbClient.CreateSgBaseACL("", ovnnb.ACLDirectionFromLport)
+		err := nbClient.CreateSgBaseACL("", ovnnb.ACLDirectionFromLport, 2)
 		require.NoError(t, err)
 	})
 }
@@ -783,7 +783,7 @@ func (suite *OvnClientTestSuite) testUpdateSgACL() {
 	require.NoError(t, err)
 
 	t.Run("update securityGroup ingress acl", func(t *testing.T) {
-		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport)
+		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport, 2)
 		require.NoError(t, err)
 
 		pg, err := nbClient.GetPortGroup(pgName, false)
@@ -818,7 +818,7 @@ func (suite *OvnClientTestSuite) testUpdateSgACL() {
 	})
 
 	t.Run("update securityGroup egress acl", func(t *testing.T) {
-		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionFromLport)
+		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionFromLport, 2)
 		require.NoError(t, err)
 
 		pg, err := nbClient.GetPortGroup(pgName, false)
@@ -858,7 +858,7 @@ func (suite *OvnClientTestSuite) testUpdateSgACL() {
 				Name: "",
 			},
 		}
-		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport)
+		err = nbClient.UpdateSgACL(sg, ovnnb.ACLDirectionToLport, 2)
 		require.ErrorContains(t, err, "the port group name or logical switch name is required")
 	})
 }
@@ -1188,7 +1188,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("outport == @%s && ip4 && ip4.src == $%s && icmp4", pgName, GetSgV4AssociatedName(sgRule.RemoteSecurityGroup))
@@ -1210,7 +1210,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("outport == @%s && ip4 && ip4.src == %s && icmp4", pgName, sgRule.RemoteAddress)
@@ -1232,7 +1232,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("outport == @%s && ip6 && ip6.src == %s && icmp6", pgName, sgRule.RemoteAddress)
@@ -1254,7 +1254,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionFromLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionFromLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("inport == @%s && ip4 && ip4.dst == %s && icmp4", pgName, sgRule.RemoteAddress)
@@ -1276,7 +1276,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("outport == @%s && ip4 && ip4.src == %s && icmp4", pgName, sgRule.RemoteAddress)
@@ -1300,7 +1300,7 @@ func (suite *OvnClientTestSuite) testNewSgRuleACL() {
 		}
 		priority := strconv.Itoa(highestPriority - sgRule.Priority)
 
-		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule)
+		acl, err := nbClient.newSgRuleACL(sgName, ovnnb.ACLDirectionToLport, sgRule, 2)
 		require.NoError(t, err)
 
 		match := fmt.Sprintf("outport == @%s && ip4 && ip4.src == %s && %d <= tcp.dst <= %d", pgName, sgRule.RemoteAddress, sgRule.PortRangeMin, sgRule.PortRangeMax)

@@ -161,9 +161,9 @@ type ACL interface {
 	UpdateEgressACLOps(netpol, pgName, asEgressName, asExceptName, protocol, aclName string, npp []netv1.NetworkPolicyPort, logEnable bool, logACLActions []ovnnb.ACLAction, namedPortMap map[string]*util.NamedPortInfo) ([]ovsdb.Operation, error)
 	CreateGatewayACL(lsName, pgName, gateway, u2oInterconnectionIP string) error
 	CreateNodeACL(pgName, nodeIPStr, joinIPStr string) error
-	CreateSgDenyAllACL(sgName string) error
-	CreateSgBaseACL(sgName, direction string) error
-	UpdateSgACL(sg *kubeovnv1.SecurityGroup, direction string) error
+	CreateSgDenyAllACL(sgName string, tier int) error
+	CreateSgBaseACL(sgName, direction string, tier int) error
+	UpdateSgACL(sg *kubeovnv1.SecurityGroup, direction string, tier int) error
 	UpdateLogicalSwitchACL(lsName, cidrBlock string, subnetAcls []kubeovnv1.ACL, allowEWTraffic bool) error
 	SetACLLog(pgName string, logEnable, isIngress bool) error
 	SetLogicalSwitchPrivate(lsName, cidrBlock, nodeSwitchCIDR string, allowSubnets []string) error

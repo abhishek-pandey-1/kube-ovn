@@ -2963,8 +2963,6 @@ spec:
                         type: integer
                       policy:
                         type: string
-                      tier:
-                        type: integer
                       localAddress:
                         type: string
                       localPortRangeMin:
@@ -2994,8 +2992,6 @@ spec:
                         type: integer
                       policy:
                         type: string
-                      tier:
-                        type: integer
                       localAddress:
                         type: string
                       localPortRangeMin:
@@ -3004,6 +3000,11 @@ spec:
                         type: integer
                 allowSameGroupTraffic:
                   type: boolean
+                securityGroupTier:
+                  type: integer
+                  default: 2
+                  minimum: 2
+                  maximum: 3
             status:
               type: object
               properties:

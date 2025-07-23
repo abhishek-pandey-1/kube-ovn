@@ -31,7 +31,8 @@ type SgPolicy string
 var (
 	SgPolicyAllow = SgPolicy(ovnnb.ACLActionAllow)
 	SgPolicyDrop  = SgPolicy(ovnnb.ACLActionDrop)
-	SgPolicyPass  = SgPolicy(ovnnb.ACLActionPass)
+	// Pass ACL processing to next tier
+	SgPolicyPass = SgPolicy(ovnnb.ACLActionPass)
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -58,6 +59,7 @@ type SecurityGroupSpec struct {
 	IngressRules          []SecurityGroupRule `json:"ingressRules,omitempty"`
 	EgressRules           []SecurityGroupRule `json:"egressRules,omitempty"`
 	AllowSameGroupTraffic bool                `json:"allowSameGroupTraffic,omitempty"`
+	SecurityGroupTier     int                 `json:"securityGroupTier,omitempty"`
 }
 
 type SecurityGroupRule struct {
@@ -73,7 +75,6 @@ type SecurityGroupRule struct {
 	LocalPortRangeMin   int          `json:"localPortRangeMin,omitempty"`
 	LocalPortRangeMax   int          `json:"localPortRangeMax,omitempty"`
 	Policy              SgPolicy     `json:"policy"`
-	Tier                int          `json:"tier,omitempty"`
 }
 
 type SecurityGroupStatus struct {
