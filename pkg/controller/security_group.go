@@ -56,20 +56,14 @@ func (c *Controller) initDefaultDenyAllSecurityGroup() error {
 		return err
 	}
 
-	// Add default deny rules for both the tiers. If port has a securityGroup configured,
-	// it should have deny rule configured in both tier 2 and tier 3. This ensures that
-	// if the first tier passed the packet to second tier and ther is no match in the
-	// second tier, the packet should be dropped.
-	// If in future we extend the number of securityGroup tiers, this logic should be
-	// extended to cover all tiers.
-	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, 2); err != nil {
-		klog.Errorf("create deny all acl for sg %s tier 2: %v", util.DenyAllSecurityGroup, err)
-		return err
-	}
-
-	if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, 3); err != nil {
-		klog.Errorf("create deny all acl for sg %s tier 3: %v", util.DenyAllSecurityGroup, err)
-		return err
+	// Add default deny rules for all the tiers. This is to ensure that if a packet
+	// is moved between tiers during acl evaluation, it is always dropped if no explicit
+	// allow or drop rule is not hit.
+	for tier := util.SecurityGroupTierMinimum; tier <= util.SecurityGroupTierMaximum; tier++ {
+		if err := c.OVNNbClient.CreateSgDenyAllACL(util.DenyAllSecurityGroup, tier); err != nil {
+			klog.Errorf("create deny all acl for sg %s tier %d: %v", util.DenyAllSecurityGroup, tier, err)
+			return err
+		}
 	}
 
 	c.addOrUpdateSgQueue.Add(util.DenyAllSecurityGroup)
@@ -261,8 +255,8 @@ func (c *Controller) handleAddOrUpdateSg(key string, force bool) error {
 func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 	// check sg rules
 	allRules := append(sg.Spec.IngressRules, sg.Spec.EgressRules...)
-	if sg.Spec.SecurityGroupTier < 2 || sg.Spec.SecurityGroupTier > 3 {
-		return fmt.Errorf("tier '%d' is not in the range [2,3]", sg.Spec.SecurityGroupTier)
+	if sg.Spec.SecurityGroupTier < util.SecurityGroupTierMinimum || sg.Spec.SecurityGroupTier > util.SecurityGroupTierMaximum {
+		return fmt.Errorf("tier '%d' is not in the range [%d,%d]", sg.Spec.SecurityGroupTier, util.SecurityGroupTierMinimum, util.SecurityGroupTierMaximum)
 	}
 
 	for _, rule := range allRules {
@@ -270,8 +264,12 @@ func (c *Controller) validateSgRule(sg *kubeovnv1.SecurityGroup) error {
 			return errors.New("IPVersion should be 'ipv4' or 'ipv6'")
 		}
 
-		if rule.Priority < 1 || rule.Priority > 16384 {
-			return fmt.Errorf("priority '%d' is not in the range of 1 to 16384", rule.Priority)
+		if rule.Priority < util.SecurityGroupPriorityMin || rule.Priority > util.SecurityGroupPriorityMax {
+			return fmt.Errorf("priority '%d' is not in the range of %d to %d", rule.Priority, util.SecurityGroupPriorityMin, util.SecurityGroupPriorityMax)
+		}
+
+		if sg.Spec.SecurityGroupTier == util.SecurityGroupTierMaximum && rule.Policy == kubeovnv1.SgPolicyPass {
+			return fmt.Errorf("policy pass not valid when the security group tier is maximum [%d]", util.SecurityGroupTierMaximum)
 		}
 
 		switch rule.RemoteType {

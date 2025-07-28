@@ -148,8 +148,13 @@ const (
 	SecurityGroupBasePriority    = "2005"
 	SecurityGroupAllowPriority   = "2004"
 	SecurityGroupDropPriority    = "2003"
-	SecurityGroupUpperTier       = 2
-	SecurityGroupLowerTier       = 3
+
+	// SecurityGroup API limits for priority and tier
+	SecurityGroupPriorityMax = 16384
+	SecurityGroupPriorityMin = 1
+
+	SecurityGroupTierMinimum = 2
+	SecurityGroupTierMaximum = 3
 
 	IngressAllowPriority = "2001"
 	IngressDefaultDrop   = "2000"
