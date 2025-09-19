@@ -3202,6 +3202,12 @@ spec:
                         type: integer
                       policy:
                         type: string
+                      localAddress:
+                        type: string
+                      sourcePortRangeMin:
+                        type: integer
+                      sourcePortRangeMax:
+                        type: integer
                 egressRules:
                   type: array
                   items:
@@ -3225,8 +3231,16 @@ spec:
                         type: integer
                       policy:
                         type: string
+                      localAddress:
+                        type: string
+                      sourcePortRangeMin:
+                        type: integer
+                      sourcePortRangeMax:
+                        type: integer
                 allowSameGroupTraffic:
                   type: boolean
+                tier:
+                  type: integer
             status:
               type: object
               properties:
