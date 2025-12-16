@@ -62,6 +62,11 @@ type VpcSpec struct {
 	// optional BFD LRP configuration
 	// currently the LRP is used for vpc external gateway only
 	BFDPort *BFDPort `json:"bfdPort"`
+
+	// LRPEipNames maps subnet names to specific EIP names for LRP
+	// Key: subnet name, Value: EIP name
+	// Only applies when EnableExternal=true
+	LRPEipNames map[string]string `json:"lrpEipNames,omitempty"`
 }
 
 type BFDPort struct {
