@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
-	"github.com/kubeovn/kube-ovn/pkg/internal"
+	"github.com/kubeovn/kube-ovn/pkg/apis/types"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -37,13 +37,13 @@ type IPPoolSpec struct {
 }
 
 type IPPoolStatus struct {
-	V4AvailableIPs     internal.BigInt `json:"v4AvailableIPs"`
+	V4AvailableIPs     types.BigInt `json:"v4AvailableIPs"`
 	V4AvailableIPRange string          `json:"v4AvailableIPRange"`
-	V4UsingIPs         internal.BigInt `json:"v4UsingIPs"`
+	V4UsingIPs         types.BigInt `json:"v4UsingIPs"`
 	V4UsingIPRange     string          `json:"v4UsingIPRange"`
-	V6AvailableIPs     internal.BigInt `json:"v6AvailableIPs"`
+	V6AvailableIPs     types.BigInt `json:"v6AvailableIPs"`
 	V6AvailableIPRange string          `json:"v6AvailableIPRange"`
-	V6UsingIPs         internal.BigInt `json:"v6UsingIPs"`
+	V6UsingIPs         types.BigInt `json:"v6UsingIPs"`
 	V6UsingIPRange     string          `json:"v6UsingIPRange"`
 
 	// Conditions represents the latest state of the object
